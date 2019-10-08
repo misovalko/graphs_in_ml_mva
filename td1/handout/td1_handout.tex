@@ -1,0 +1,333 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage[T1]{fontenc}
+\usepackage{amsfonts}
+\usepackage{enumitem}
+\usepackage{natbib}
+\usepackage{listings}
+\setenumerate[1]{label=\thesection.\arabic*.}
+\usepackage{datetime}
+
+% Paragraph indent
+\setlength\parindent{0pt}
+
+
+%\usepackage{enumerate}
+\include{mathdef}
+\setlength{\parskip}{\baselineskip}%
+
+\usepackage{color}
+\usepackage[defaultmono]{droidmono}
+
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+
+\lstset{ %
+backgroundcolor=\color{white},   % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}
+basicstyle=\fdmfamily\footnotesize,        % the size of the fonts that are used for the code
+breakatwhitespace=false,         % sets if automatic breaks should only happen at whitespace
+breaklines=true,                 % sets automatic line breaking
+captionpos=b,                    % sets the caption-position to bottom
+commentstyle=\color{mygreen},    % comment style
+deletekeywords={...},            % if you want to delete keywords from the given language
+escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+extendedchars=true,              % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+frame=single,	                   % adds a frame around the code
+keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
+keywordstyle=\color{blue},       % keyword style
+language=Octave,                 % the language of the code
+otherkeywords={*,...},            % if you want to add more keywords to the set
+numbers=left,                    % where to put the line-numbers; possible values are (none, left, right)
+numbersep=5pt,                   % how far the line-numbers are from the code
+numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers
+rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+showspaces=false,                % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
+showstringspaces=false,          % underline spaces within strings only
+showtabs=false,                  % show tabs within strings adding particular underscores
+stepnumber=2,                    % the step between two line-numbers. If it's 1, each line will be numbered
+stringstyle=\color{mymauve},     % string literal style
+tabsize=2,	                   % sets default tabsize to 2 spaces
+title=\lstname                   % show the filename of files included with \lstinputlisting; also try caption instead of title
+}
+
+
+
+\begin{document}
+\title{TP1: Spectral Clustering}
+\author{pierre (dot) perrault (at) inria.fr \\ omar (dot) darwiche-domingues (at) inria.fr}
+\date{October 15, 2019}
+\maketitle
+
+\begin{abstract}
+    In this practical session we will cover fundamental graph building
+    techniques, and apply them to the Spectral Clustering problem.
+    The session will be evaluated on a short written report and a final
+    image segmentation implementation. During
+    the TD we will implement all the necessary tools to do the
+    segmentation and answer the
+    report questions.
+    The report and the code are due in 2 weeks (deadline 23:59 29/11/2019).
+    You will find instructions on how to submit the report on piazza,
+    as well as the policies for scoring and late submissions.
+    All the code related to the TD must be submitted,
+    to provide background for the image segmentation code evaluation.
+
+\end{abstract}
+
+\newpage
+
+%A small preface (especially for those that will not be present at the
+%TD). Some of the experiments that will be presented during this TD makes use
+%of randomly generated datasets. Because of this, there is always the
+%possibility that a single run will be not representative of the
+%usual outcome. Randomness in the data is common in Machine Learning,
+%and managing this randomness is important. Proper experimental setting calls
+%for repeated experiments and confidence intervals. In this case, it will be
+%sufficient to repeat each experiment multiple times and visually see
+%if there is large variations (some experiments are designed exactly to show
+%this variations).
+
+
+%Whenever the instructions require you to complete a file
+%this means to open the corresponding
+%file, and complete it according to the instructions all the following
+%sections
+%{\small
+%\begin{lstlisting}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% use the build_similarity_graph function to build the graph W  %
+%% W: (n x n) dimensional matrix representing                    %
+%%    the adjacency matrix of the graph                          %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%YOUR CODE HERE
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\end{lstlisting}
+%}
+%
+%For each of these file the documentation at the top describes their parameters.
+
+
+%If you use Matlab, before running any code, move to the root directory where
+%\path{load_td.m} is located, and run it to properly set
+%the required Matlab paths and import packages.
+
+\newpage
+
+\section{Graph construction}
+The file \path{generate_data.py} contains functions that will generate artificial
+data for the experiments, as described below. You can run the script to visualize the data.
+
+\begin{enumerate}
+    \item[] \textbf{$N$-Blob}: Sample random points in $\mathbb{R}^2$ according to $N$
+        Gaussian distribution with mean
+        $\mu_i = [\cos(2\pi i / N),\sin(2\pi i / N)]$ and variance $\mbox{Diag}(\sigma^2)$.
+        As an example, 3-Blob is a dataset generated using this distribution
+        and three clusters.
+    \item[] \textbf{Two Moons}: Sample random points shaped as two intertwined moons.
+    \item[] \textbf{Point and Circle}: Sample random points from a concentrated Gaussian
+        point in the middle and a wide circle around it.
+\end{enumerate}
+
+%The first task of the session is to build and plot a grap representation of the
+%data. In order to do this you will complete the \path{plot_similarity_graph.m} file
+%with the necessary code.
+
+A prerequisite to build a similarity graph is to define a similarity function
+to score the distance between nodes in the graph.
+For the rest of the session we will use an inverse exponential function
+as the similarity measure, controlled by the euclidean distance.
+$$ d(x_i, x_j) = \exp \left\{-\frac{\Vert x_i - x_j \Vert^2_2}{2\sigma^2}\right\}$$
+The variance $\sigma^2$ of the Gaussian will control
+the bandwidth of the similarity.
+
+%You should now complete \path{build_similarity_graph.m}. In this file,
+%you will write the code necessary to build an $\varepsilon$ graph and an
+%(OR) $k$-nn graph. More details on these terms are contained in
+%the source code of the file.
+
+In the file \path{build_similarity_graph.py}, do the following: 
+\begin{itemize}
+	\item  Write the code to build an $\varepsilon$ graph and an
+	(OR) $k$-nn graph. More details on these terms are contained in
+	the source code of the file.
+	\item Use the function \path{plot_similarity_graph} to visualize the graph for some generated data. The function \path{plot_graph_matrix}, in the file \path{utils.py} might also be useful.
+	\item Complete the function \path{how_to_choose_epsilon}. You may use the function \path{min_span_tree} in \path{utils.py}.
+\end{itemize}
+
+
+
+Answer the following questions: 
+
+\begin{enumerate}[resume]
+	
+    \item What is the purpose of the option parameter in \path{worst_case_blob} (in the file \path{generate_data.py})?
+    \item  What happens when you change the generating parameter of
+        \path{worst_case_blob} in \path{how_to_choose_espilon}
+        and run the function? What if the parameter is very large?
+    \item Using \path{plot_similarity_graph} and one of the datasets,
+        compare $k$-nn to $\varepsilon$ graphs. When is it easier to build
+        a connected graph using $k$-nn? When using $\varepsilon$ graphs?
+\end{enumerate}
+
+
+\section{Spectral Clustering}
+
+In the file \path{spectral_clustering.py}, do the following: 
+
+\begin{itemize}
+	\item Complete the function \path{build_laplacian}.
+	\item Complete the function \path{spectral_clustering}.
+\end{itemize}
+
+
+
+\begin{enumerate}
+    \item Build a graph starting from the data generated in
+        \path{two_blobs_clustering}, and remember to keep
+        the graph connected.
+        Motivate your choice on which eigenvectors to use
+        and how you computed the clustering assignments from the eigenvectors.
+        Now compute a similar clustering using the
+        built-in $k$-means and compare the results.
+    \item Build a graph starting from the data generated in
+        \path{two_blobs_clustering}, but this time
+        make it so that the two components are separate.
+        How do you choose which eigenvectors to use in this case?
+        Motivate your answer.
+\end{enumerate}
+
+
+So far we only considered clustering with $c=2$, and we did not establish
+a systematic rule on how to select eigenvalues.  Do the following:
+
+\begin{itemize}
+	\item Complete the function \path{spectral_clustering_adaptive}, which is almost identical to \path{spectral_clustering}, except for the eigenvectors selection, which must use the function \path{choose_eig_function}.
+\end{itemize}
+
+
+\begin{enumerate}[resume]
+    \item Look at the function \path{find_the_bend}.
+        Generate a dataset with 4 blobs and
+        $\sigma^2=0.03$. Build a graph out of it and plot
+        the first 15 eigenvalues of the Laplacian.
+        Complete the function \path{choose_eig_function}
+        to automatically choose the number of eigenvectors to include.
+        The decision rule must adapt to the actual eigenvalues of the
+        problem.
+    \item Now increase the variance of the Blobs to $\sigma^2=0.20$
+        as you keep plotting
+        the eigenvalues. Use the function \path{choose_eig_function}.
+        Do you see any difference?
+    \item When you built the cluster assignment, did you use thresholding,
+        $k$-means or both? Do you have any opinion on when to use each?
+    \item What is another use that looking at the distribution
+        of the eigenvalues can have during clustering, beside
+        choosing which eigenvectors to include?
+\end{enumerate}
+
+We will now consider more complex structures than Gaussian blobs. 
+
+\begin{itemize}
+	\item Complete the function \path{two_moons_clustering} 
+	\item Complete the function \path{point_and_circle_clustering}.
+\end{itemize}
+
+\begin{enumerate}[resume]
+    \item  Plot your results using spectral
+        clustering and $k$-means in \path{two_moons_clustering} and compare the results.
+        Do you notice any difference? Taking into consideration
+        the graph structure, can you explain them?
+    \item In the function \path{point_and_circle_clustering}, compare
+        spectral clustering using the normal laplacian $L$ and the
+        random-walk regularized Laplacian $L_{rw}$.
+        Do you notice any difference? Taking into consideration
+        the graph structure, can you explain them?
+\end{enumerate}
+
+
+How did you choose the parameters when building the graph?
+We will compare clustering solutions while we change one of the parameters.
+Evaluating clustering is not straightforward, since the final labeling
+is arbitrary and not related to the original labels (in the rare cases
+when talking about labels make sense). In particular, a labeling obtained
+with a clustering algorithm might coincide with the true labels, but with
+the label indices arbitrarily reshuffled (e.g. points in class $i$ labeled
+as $j$ and points in class $j$ labeled as $i$).
+To evaluate the assignment
+we will use the Adjusted Rand Index score \cite{wagner2007comparing}.
+The Rand Index takes as input two labelings of a dataset
+and outputs a value between 0 (unrelated) and 1 (equal)
+comparing how much these labeling overlap. The Adjusted RI
+gives a better estimation for large number of clusters at the expense
+of some (possibly unsatisfied) statistical assumption.
+\begin{enumerate}[resume]
+    \item Complete the function \path{parameter_sensitivity}, and
+        generate a plot of the ARI index while varying one of the
+        parameters in the graph construction $\varepsilon$ or $k$.
+        Comment on the stability of spectral clustering.
+    \item If we did not have access to \emph{true}\footnote{Definitions of
+            true may vary.} labels how could we evaluate the clustering
+        result (or what should we not use as evaluation)?
+\end{enumerate}
+
+
+\section{Image Segmentation}
+Your final task, that you will complete after the class, is implementing
+image segmentation using spectral clustering. As a simple example we will
+segment images based on colors. In order to do this you must complete the file
+\path{image_segmentation.py}. Here are some pointers (these are only suggestion)
+
+\begin{itemize}
+    \item The images provided are $50 \times 50$ pixels RGB images in the data folder. You
+        need to specify them as input to the function \path{image_segmentation}.
+        Inside the script, the images is loaded as a $50 \times 50 \times 3$ matrix,
+        and converted into an $2500 \times 3$ matrix $X$
+         where each pixel is a $\mathbb{R}^3$
+        vector in RGB space.
+    \item The image was chosen so that it could be easily segmented using
+        colors. The easiest way is to build a graph based on color distance
+        between individual pixels and cluster them.
+\end{itemize}
+The function \path{image_segmentation} will plot your segmentation. Because in clustering
+the label are arbitrary the colors might be wrong. This does not matter as long
+as the separation is correct.
+
+
+
+Final questions:
+
+\begin{enumerate}
+    \item The first documentation is the code. If your code is well written
+        and well commented, that is enough. If you think you need to better
+        express some of the choices you made in the implementation,
+        you can use this question in the report. Remember to include
+        all the related code in the submission.
+    \item A full graph built between the pixels of a $50 \times 50$ image
+        corresponds to $50^2$ nodes. Solving the full eigenvalue problem
+        in this case would scale in the order of $2^{34}$. Even on weak
+        hardware (i.e. iPhone) this takes only seconds to minutes.
+        Segmenting a Full HD picture of $1920 \times 1080$ would scale in the
+        order of $2^{64}$ (about a month on a decent machine i.e. not an iPhone).
+        Beyond that, the large picture would require
+        to store in memory a graph over millions of nodes. A full graph
+        on that scale requires about 1TB of memory. Can you think two simple
+        techniques to reduce the computational and occupational cost of
+        Spectral Clustering?
+    \item Did you use \path{eig} or \path{eigs} to extract the final eigenvectors?
+        Shortly, what is the difference between the two?
+        How do they scale to large graphs (order of complexity)?
+\end{enumerate}
+
+
+\bibliographystyle{plain}
+\bibliography{td}
+
+\end{document}
+
