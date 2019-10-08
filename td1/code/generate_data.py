@@ -48,7 +48,7 @@ def blobs(num_samples, n_blobs=3, blob_var=0.15, surplus=0):
     return [X, Y]
 
 
-def two_moons(num_samples, moon_radius=2.0, moon_var=0.05):
+def two_moons(num_samples, moon_radius=2.0, moon_var=0.02):
     """
     Creates two intertwined moons
 

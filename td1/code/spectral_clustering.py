@@ -32,7 +32,7 @@ def spectral_clustering(L, chosen_eig_indices, num_classes=2):
     """
 
     """
-    Use the function scipy.linalg.eig or the function scipy.linalg.eigs to compute:
+    Use the function scipy.linalg.eig or the function scipy.sparse.linalg.eigs to compute:
     U = (n x n) eigenvector matrix           (sorted)
     E = (n x n) eigenvalue diagonal matrix   (sorted)
     """

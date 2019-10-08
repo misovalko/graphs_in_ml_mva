@@ -22,13 +22,13 @@ def plot_clusters(X, Y, fignum='data', show=False):
         plt.show()
 
 
-def min_span_tree(similarities):
+def min_span_tree(W):
     """
-    :param similarities: (n x n) similarity matrix (fully connected)
+    :param W: (n x n) adjacency matrix representing the graph
     :return: T: (n x n) matrix such that T[i,j] = True if the edge (i, j) is in the min spanning tree, and
                 T[i, j] = False otherwise
     """
-    tree = minimum_spanning_tree(similarities).toarray()
+    tree = minimum_spanning_tree(W).toarray()
     T = tree != 0
     return T
 
