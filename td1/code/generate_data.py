@@ -23,7 +23,7 @@ def worst_case_blob(num_samples, gen_pam):
     return [X, Y]
 
 
-def blobs(num_samples, n_blobs=3, blob_var=0.15, surplus=0):
+def blobs(num_samples, n_blobs=2, blob_var=0.15, surplus=0):
     """
     Creates N gaussian blobs evenly spaced across a circle.
 
@@ -34,18 +34,25 @@ def blobs(num_samples, n_blobs=3, blob_var=0.15, surplus=0):
     :return: X,  (num_samples, 2) matrix of 2-dimensional samples
              Y,  (num_samples, ) vector of "true" cluster assignment
     """
-    x = np.arange(n_blobs) * 2 * np.pi / n_blobs
-    xf = x[0]
-    x = x[1:]
-    centers = np.column_stack((np.cos(x), np.sin(x)))
-    centerf = np.column_stack((np.cos(xf), np.sin(xf)))
-    Xf, Yf = skd.make_blobs(n_samples=int((num_samples - surplus) / n_blobs + surplus), n_features=2, centers=centerf,
-                            cluster_std=blob_var)
-    X, Y = skd.make_blobs(n_samples=int((num_samples - surplus) / n_blobs), n_features=2, centers=centers,
-                          cluster_std=blob_var)
-    X = np.vstack((Xf, X))
-    Y = np.array(list(Yf) + list(Y + 1))
-    return [X, Y]
+    # data array
+    X = np.zeros((num_samples, 2))
+    # array containing the indices of the true clusters
+    Y = np.zeros(num_samples, dtype=np.int32)
+
+    # generate data
+    block_size = (num_samples-surplus)//n_blobs
+
+    for ii in range(1, n_blobs+1):
+        start_index = (ii - 1) * block_size
+        end_index = ii * block_size
+        if ii == n_blobs:
+            end_index = num_samples
+        Y[start_index:end_index] = ii - 1
+        nn = end_index - start_index
+
+        X[start_index:end_index, 0] = np.cos(2*np.pi*ii/n_blobs) + blob_var*np.random.randn(nn)
+        X[start_index:end_index, 1] = np.sin(2*np.pi*ii/n_blobs) + blob_var*np.random.randn(nn)
+    return X, Y
 
 
 def two_moons(num_samples, moon_radius=2.0, moon_var=0.02):
@@ -82,7 +89,7 @@ def point_and_circle(num_samples, radius=2.0, sigma=0.15):
     :param sigma:       variance
     :param radius:      radius of the circle
     :return: X,  (num_samples, 2) matrix of 2-dimensional samples
-             Y,  (num_samples, ) vector of "true" cluster assignment [1:c]
+             Y,  (num_samples, ) vector of "true" cluster assignment in {0, ..., c-1}
     """
     # data array
     X = np.zeros((num_samples, 2))
@@ -115,12 +122,18 @@ def point_and_circle(num_samples, radius=2.0, sigma=0.15):
 if __name__ == '__main__':
     from utils import plot_clusters
 
-    blobs_data, blobs_clusters = blobs(600)
+    blobs_data, blobs_clusters = blobs(600, n_blobs=4, surplus=500)
     moons_data, moons_clusters = two_moons(600)
     point_circle_data, point_circle_clusters = point_and_circle(600)
     worst_blobs_data, worst_blobs_clusters = worst_case_blob(600, 5.0)
 
-    plot_clusters(blobs_data, blobs_clusters, 'blobs', show=False)
+    print(blobs_data.shape)
+    # print((blobs_clusters == 0).sum())
+    # print((blobs_clusters == 1).sum())
+    # print((blobs_clusters == 2).sum())
+    # print((blobs_clusters == 3).sum())
+
+    plot_clusters(blobs_data, blobs_clusters, 'blobs', show=True)
     plot_clusters(moons_data, moons_clusters, 'moons', show=False)
     plot_clusters(point_circle_data, point_circle_clusters, 'point and circle', show=False)
     plot_clusters(worst_blobs_data, worst_blobs_clusters, 'worst case blob', show=True)
