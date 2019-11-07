@@ -130,6 +130,8 @@ venv.bak/
 .DS_Store
 
 .idea/
+
+td2/data/
 /site
 
 # mypy
