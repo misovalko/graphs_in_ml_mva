@@ -90,8 +90,8 @@ def hard_hfs(X, Y, laplacian_regularization, var=1, eps=0, k=0, laplacian_normal
 
     """
     Build the vectors:
-    l_idx = (l x num_classes) vector with indices of labeled nodes
-    u_idx = (u x num_classes) vector with indices of unlabeled nodes
+    l_idx = shape (l,) vector with indices of labeled nodes
+    u_idx = shape (u,) vector with indices of unlabeled nodes
     """
 
     # ...
